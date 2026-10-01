@@ -89,7 +89,7 @@ export default function PlanContent({
     (layout.plots || []).forEach((f) => m.set(f.i, plotAngle(f.pts)));
     return m;
   }, [layout.plots]);
-
+const ROAD_FONT_BOOST = 2;
   return (
     <g>
       {groundPath && (
@@ -172,7 +172,8 @@ export default function PlanContent({
         if (!label) return null;
 
         const isRoad = f.kind === 'road';
-        const size = Math.min(Math.max(f.ir * (isRoad ? 0.55 : 0.9), 1.2), isRoad ? 2.8 : 3.8);
+        const baseSize = Math.min(Math.max(f.ir * (isRoad ? 0.55 : 0.9), 1.2), isRoad ? 2.8 : 3.8);
+const size = isRoad ? baseSize + ROAD_FONT_BOOST : baseSize;
         if (size < 1.2) return null;
 
         const ink = KIND[f.kind].ink;
