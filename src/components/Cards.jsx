@@ -1,113 +1,3 @@
-// // components/Cards.jsx — the two list cards.
-// //
-// // The Dart cards each ran their own AnimationController with a delay keyed
-// // off the list index. framer-motion does the same with `custom`, and it
-// // cancels cleanly when a card leaves the list — which the Future.delayed
-// // version could not, hence its `if (mounted)` guard.
-
-// import React, { useState } from 'react';
-// import { motion } from 'framer-motion';
-// import {useNavigate} from 'react-router-dom';
-
-// import { inr, plain, shortDate } from './HomeParts';
-
-// const reveal = {
-//   hidden: { opacity: 0, y: 18 },
-//   show: (i) => ({
-//     opacity: 1,
-//     y: 0,
-//     transition: { delay: Math.min(i, 8) * 0.06, duration: 0.36, ease: [0.16, 1, 0.3, 1] },
-//   }),
-// };
-
-// export function QuotationCard({ quotation: q, index, onOpen }) {
-//   const [pressed, setPressed] = useState(false);
-
-//   return (
-//     <motion.button
-//       type="button"
-//       className={`qcard${pressed ? ' is-pressed' : ''}`}
-//       custom={index}
-//       variants={reveal}
-//       initial="hidden"
-//       animate="show"
-//       onPointerDown={() => setPressed(true)}
-//       onPointerUp={() => setPressed(false)}
-//       onPointerLeave={() => setPressed(false)}
-//       onClick={onOpen}
-//     >
-//       <span className="qcard-spine" aria-hidden="true" />
-//       <span className="qcard-body">
-//         <span className="qcard-top">
-//           <span className="qcard-glyph" aria-hidden="true">📄</span>
-//           <span className="qcard-who">
-//             <strong>{q.customerName}</strong>
-//             <span>{q.projectName} · Plot {q.plotNumber}</span>
-//           </span>
-//           <span className="qcard-money">
-//             <strong>{inr.format(q.finalTotalAmount)}</strong>
-//             <span>{shortDate.format(q.quotationDate)}</span>
-//           </span>
-//         </span>
-//         <span className="qcard-chips">
-//           <span className="pill">{plain.format(q.plotSize)} sq ft</span>
-//           <span className="pill">{inr.format(q.ratePerSqFt)}/sq ft</span>
-//         </span>
-//       </span>
-//     </motion.button>
-//   );
-// }
-
-// export function MapCard({ map, index, onOpen }) {
-//   const navigate = useNavigate();
-//   const [pressed, setPressed] = useState(false);
-//   const [broken, setBroken] = useState(false);
-// const openMap = () => {
-//   navigate(`/maps/${map.id}`);
-// };
-//   return (
-//     <motion.div
-//       className={`mcard${pressed ? ' is-pressed' : ''}`}
-//       custom={index}
-//       variants={reveal}
-//       initial="hidden"
-//       animate="show"
-//       onPointerDown={() => setPressed(true)}
-//       onPointerUp={() => setPressed(false)}
-//       onPointerLeave={() => setPressed(false)}
-//     >
-//       <div className="mcard-cover">
-//         {broken
-//           ? <div className="mcard-fallback" aria-hidden="true">🗺</div>
-//           : (
-//             <img
-//               src="/images/prospera-brochure.jpg"
-//               alt=""
-//               onError={() => setBroken(true)}
-//             />
-//           )}
-//         <span className="mcard-fade" aria-hidden="true" />
-//       </div>
-
-//       <div className="mcard-foot">
-//         <div className="mcard-name">
-//           <strong>{map.name || map.id}</strong>
-//           {map.createdDate && (
-//             <span>{shortDate.format(
-//               map.createdDate?.toDate ? map.createdDate.toDate() : new Date(map.createdDate),
-//             )}</span>
-//           )}
-//         </div>
-//         <button type="button" className="mcard-open" onClick={onOpen}>
-//           Open map
-//         </button>
-//       </div>
-//     </motion.div>
-//   );
-// }
-
-
-
 
 
 
@@ -142,9 +32,9 @@ import vastu from "../assets/madhav.jpeg";
      2. Add a line below mapping its id or name to that import.
 ------------------------------------------------------------------ */
 const PROJECT_IMAGES_RAW = {
-  'ARADHYA NAGARI': LOGO_SRC,
-  'HANUMAN VATIKA': Hanuman,
-  'VASTU BHUMI': vastu,
+  'Nisarg': LOGO_SRC,
+  'Prime heritage': Hanuman,
+  'madhav': vastu,
   // 'prospera-lakeview': LAKEVIEW_LOGO_SRC,
   // 'prospera-hillcrest': HILLCREST_LOGO_SRC,
 };
