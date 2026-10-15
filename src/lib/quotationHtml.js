@@ -76,7 +76,7 @@ const TERMS = [
   'Agreement amount should be paid within 20 days and sale deed should be done within 3 months from the date of booking. If not the company will cancel the plot.',
 ];
 
-export function quotationHtml(q, { company = 'Aradhya', unit = 'Aradhya', logo = '' } = {}) {
+export function quotationHtml(q, { company = 'Shubh Aarambh', unit = 'Shubh Aarambh', logo = '' } = {}) {
   const ref = q.id ? q.id.slice(0, 8).toUpperCase() : '';
   const stampReg = q.stampDutyAmount + q.registrationAmount;
 
@@ -228,7 +228,9 @@ export function quotationHtml(q, { company = 'Aradhya', unit = 'Aradhya', logo =
   
        
               ${sum('Plot Amount', q.totalPlotAmount)}
+              ${amt('Stamp + Reg Total', stampReg)}
         ${sum('Admin Charges', q.adminTotal)}
+        
         <div class="grand" style="background:${GREEN}"><span>GRAND TOTAL</span><span>${inr(q.finalTotalAmount)}</span></div>
       </div>
       <div class="gap"></div>

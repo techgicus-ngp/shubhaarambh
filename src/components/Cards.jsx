@@ -1,10 +1,5 @@
-
-
-
-
-
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState } from "react";
+import { motion } from "framer-motion";
 import LOGO_SRC from "../assets/nisarg.jpeg";
 import Hanuman from "../assets/premier.jpeg";
 import vastu from "../assets/madhav.jpeg";
@@ -32,9 +27,9 @@ import vastu from "../assets/madhav.jpeg";
      2. Add a line below mapping its id or name to that import.
 ------------------------------------------------------------------ */
 const PROJECT_IMAGES_RAW = {
-  'Nisarg': LOGO_SRC,
-  'Prime heritage': Hanuman,
-  'madhav': vastu,
+  Nisarg: LOGO_SRC,
+  "Prime heritage": Hanuman,
+  "Madhav Nagri": vastu,
   // 'prospera-lakeview': LAKEVIEW_LOGO_SRC,
   // 'prospera-hillcrest': HILLCREST_LOGO_SRC,
 };
@@ -43,12 +38,17 @@ const DEFAULT_PROJECT_IMAGE = LOGO_SRC;
 
 /** Normalizes a key so casing/whitespace differences don't break the match. */
 function normalizeKey(value) {
-  return String(value || '').trim().toUpperCase();
+  return String(value || "")
+    .trim()
+    .toUpperCase();
 }
 
 // Pre-normalize the registry once so lookups are cheap and consistent.
 const PROJECT_IMAGES = Object.fromEntries(
-  Object.entries(PROJECT_IMAGES_RAW).map(([key, src]) => [normalizeKey(key), src]),
+  Object.entries(PROJECT_IMAGES_RAW).map(([key, src]) => [
+    normalizeKey(key),
+    src,
+  ]),
 );
 
 /**
@@ -70,13 +70,17 @@ function getProjectImage(...candidates) {
    Formatters (stand-ins for the ones normally imported from
    ./HomeParts, included here so this file runs standalone)
 ------------------------------------------------------------------ */
-const inr = new Intl.NumberFormat('en-IN', {
-  style: 'currency',
-  currency: 'INR',
+const inr = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
   maximumFractionDigits: 0,
 });
-const plain = new Intl.NumberFormat('en-IN');
-const shortDate = new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+const plain = new Intl.NumberFormat("en-IN");
+const shortDate = new Intl.DateTimeFormat("en-IN", {
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+});
 
 /* ---------------------------------------------------------------
    Motion
@@ -86,7 +90,11 @@ const reveal = {
   show: (i) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: Math.min(i, 8) * 0.06, duration: 0.36, ease: [0.16, 1, 0.3, 1] },
+    transition: {
+      delay: Math.min(i, 8) * 0.06,
+      duration: 0.36,
+      ease: [0.16, 1, 0.3, 1],
+    },
   }),
 };
 
@@ -103,7 +111,7 @@ export function QuotationCard({ quotation: q, index, onOpen }) {
   return (
     <motion.button
       type="button"
-      className={`qcard${pressed ? ' is-pressed' : ''}`}
+      className={`qcard${pressed ? " is-pressed" : ""}`}
       custom={index}
       variants={reveal}
       initial="hidden"
@@ -117,7 +125,14 @@ export function QuotationCard({ quotation: q, index, onOpen }) {
       <span className="qcard-body">
         <span className="qcard-top">
           <span className="qcard-glyph" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.4">
+            <svg
+              viewBox="0 0 24 24"
+              width="18"
+              height="18"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.4"
+            >
               <path d="M6 3h9l4 4v14H6z" />
               <path d="M15 3v4h4" />
               <path d="M9 13h6M9 16.5h6M9 9.5h3" />
@@ -125,7 +140,9 @@ export function QuotationCard({ quotation: q, index, onOpen }) {
           </span>
           <span className="qcard-who">
             <strong>{q.customerName}</strong>
-            <span>{q.projectName} · Plot {q.plotNumber}</span>
+            <span>
+              {q.projectName} · Plot {q.plotNumber}
+            </span>
           </span>
           <span className="qcard-money">
             <strong>{inr.format(q.finalTotalAmount)}</strong>
@@ -159,14 +176,16 @@ async function copyText(text) {
       await navigator.clipboard.writeText(text);
       return true;
     }
-  } catch { /* fall through to legacy copy */ }
+  } catch {
+    /* fall through to legacy copy */
+  }
   try {
-    const ta = document.createElement('textarea');
+    const ta = document.createElement("textarea");
     ta.value = text;
-    ta.style.cssText = 'position:fixed;opacity:0';
+    ta.style.cssText = "position:fixed;opacity:0";
     document.body.appendChild(ta);
     ta.select();
-    const ok = document.execCommand('copy');
+    const ok = document.execCommand("copy");
     document.body.removeChild(ta);
     return ok;
   } catch {
@@ -177,17 +196,17 @@ async function copyText(text) {
 /** Native share sheet if available, otherwise copy to clipboard. */
 async function shareMapLink(map) {
   const url = buildShareUrl(map.id);
-  const title = map.name || 'Layout map';
+  const title = map.name || "Layout map";
 
   if (navigator.share) {
     try {
       await navigator.share({ title, text: `${title} – layout map`, url });
-      return 'shared';
+      return "shared";
     } catch (err) {
-      if (err?.name === 'AbortError') return 'cancelled';
+      if (err?.name === "AbortError") return "cancelled";
     }
   }
-  return (await copyText(url)) ? 'copied' : 'failed';
+  return (await copyText(url)) ? "copied" : "failed";
 }
 
 /* =================================================================
@@ -200,29 +219,36 @@ async function shareMapLink(map) {
 export function MapCard({ map, index, onOpen }) {
   const [pressed, setPressed] = useState(false);
   const [broken, setBroken] = useState(false);
-  const [shareState, setShareState] = useState('idle'); // idle | copied | failed
+  const [shareState, setShareState] = useState("idle"); // idle | copied | failed
 
   const open = onOpen || (() => {});
-  const crestSrc = getProjectImage(map.projectId, map.projectName, map.project, map.name, map.title);
+  const crestSrc = getProjectImage(
+    map.projectId,
+    map.projectName,
+    map.project,
+    map.name,
+    map.title,
+  );
 
-  const shareLabel = shareState === 'copied'
-    ? 'Link copied'
-    : shareState === 'failed'
-      ? 'Copy failed'
-      : 'Share layout link';
+  const shareLabel =
+    shareState === "copied"
+      ? "Link copied"
+      : shareState === "failed"
+        ? "Copy failed"
+        : "Share layout link";
 
   const handleShare = async (e) => {
     e.stopPropagation();
     const result = await shareMapLink(map);
-    if (result === 'copied' || result === 'failed') {
+    if (result === "copied" || result === "failed") {
       setShareState(result);
-      setTimeout(() => setShareState('idle'), 2000);
+      setTimeout(() => setShareState("idle"), 2000);
     }
   };
 
   return (
     <motion.div
-      className={`mcard${pressed ? ' is-pressed' : ''}`}
+      className={`mcard${pressed ? " is-pressed" : ""}`}
       custom={index}
       variants={reveal}
       initial="hidden"
@@ -234,7 +260,14 @@ export function MapCard({ map, index, onOpen }) {
       <div className="mcard-cover">
         {broken ? (
           <div className="mcard-fallback" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.3">
+            <svg
+              viewBox="0 0 24 24"
+              width="28"
+              height="28"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.3"
+            >
               <path d="M4 6l6-2 4 2 6-2v14l-6 2-4-2-6 2z" />
               <path d="M10 4v14M14 6v14" />
             </svg>
@@ -244,24 +277,37 @@ export function MapCard({ map, index, onOpen }) {
             <img
               key={map.projectId || map.projectName || map.name}
               src={crestSrc}
-              alt={`${map.projectName || map.name || map.projectId || 'Project'} crest`}
+              alt={`${map.projectName || map.name || map.projectId || "Project"} crest`}
               className="mcard-crest"
               onError={() => setBroken(true)}
             />
-            <span className="mcard-corner mcard-corner--tl" aria-hidden="true" />
-            <span className="mcard-corner mcard-corner--br" aria-hidden="true" />
+            <span
+              className="mcard-corner mcard-corner--tl"
+              aria-hidden="true"
+            />
+            <span
+              className="mcard-corner mcard-corner--br"
+              aria-hidden="true"
+            />
           </>
         )}
         <span className="mcard-fade" aria-hidden="true" />
 
         <button
           type="button"
-          className={`mcard-share-icon${shareState !== 'idle' ? ` is-${shareState}` : ''}`}
+          className={`mcard-share-icon${shareState !== "idle" ? ` is-${shareState}` : ""}`}
           onClick={handleShare}
           aria-label={shareLabel}
           title={shareLabel}
         >
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <svg
+            viewBox="0 0 24 24"
+            width="15"
+            height="15"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+          >
             <circle cx="18" cy="5" r="2.5" />
             <circle cx="6" cy="12" r="2.5" />
             <circle cx="18" cy="19" r="2.5" />
@@ -276,7 +322,9 @@ export function MapCard({ map, index, onOpen }) {
           {map.createdDate && (
             <span>
               {shortDate.format(
-                map.createdDate?.toDate ? map.createdDate.toDate() : new Date(map.createdDate),
+                map.createdDate?.toDate
+                  ? map.createdDate.toDate()
+                  : new Date(map.createdDate),
               )}
             </span>
           )}
@@ -299,32 +347,32 @@ export function MapCard({ map, index, onOpen }) {
 ================================================================= */
 const sampleQuotations = [
   {
-    projectId: 'ARADHYA NAGARI',
-    customerName: 'Rohan Deshmukh',
-    projectName: 'Aradhya Nagari',
-    plotNumber: 'A-14',
+    projectId: "ARADHYA NAGARI",
+    customerName: "Rohan Deshmukh",
+    projectName: "Aradhya Nagari",
+    plotNumber: "A-14",
     finalTotalAmount: 4850000,
-    quotationDate: new Date('2026-07-18'),
+    quotationDate: new Date("2026-07-18"),
     plotSize: 2400,
     ratePerSqFt: 2020,
   },
   {
-    projectId: 'HANUMAN VATIKA',
-    customerName: 'Ananya & Kunal Rao',
-    projectName: 'Hanuman Vatika',
-    plotNumber: 'C-07',
+    projectId: "HANUMAN VATIKA",
+    customerName: "Ananya & Kunal Rao",
+    projectName: "Hanuman Vatika",
+    plotNumber: "C-07",
     finalTotalAmount: 6120000,
-    quotationDate: new Date('2026-08-02'),
+    quotationDate: new Date("2026-08-02"),
     plotSize: 3000,
     ratePerSqFt: 2040,
   },
   {
-    projectId: 'VASTU BHUMI',
-    customerName: 'Priya Sharma',
-    projectName: 'Vastu Bhumi',
-    plotNumber: 'D-02',
+    projectId: "VASTU BHUMI",
+    customerName: "Priya Sharma",
+    projectName: "Vastu Bhumi",
+    plotNumber: "D-02",
     finalTotalAmount: 3990000,
-    quotationDate: new Date('2026-08-20'),
+    quotationDate: new Date("2026-08-20"),
     plotSize: 2000,
     ratePerSqFt: 1995,
   },
@@ -334,9 +382,21 @@ const sampleQuotations = [
 // field, only `name` — this is the shape that was falling back to
 // the default image before the getProjectImage fallback chain fix.
 const sampleMaps = [
-  { id: 'layout-master', name: 'ARADHYA NAGARI', createdDate: new Date('2026-09-03') },
-  { id: 'layout-phase2', name: 'HANUMAN VATIKA', createdDate: new Date('2026-09-07') },
-  { id: 'layout-vastu', name: 'Vastu Bhumi', createdDate: new Date('2026-09-16') },
+  {
+    id: "layout-master",
+    name: "ARADHYA NAGARI",
+    createdDate: new Date("2026-09-03"),
+  },
+  {
+    id: "layout-phase2",
+    name: "HANUMAN VATIKA",
+    createdDate: new Date("2026-09-07"),
+  },
+  {
+    id: "layout-vastu",
+    name: "Vastu Bhumi",
+    createdDate: new Date("2026-09-16"),
+  },
 ];
 
 export default function ProsperaCardsPreview() {
@@ -345,14 +405,22 @@ export default function ProsperaCardsPreview() {
       <header className="ps-header">
         <span className="ps-eyebrow">Site records</span>
         <h1>Quotations & Maps</h1>
-        <p>Quotations issued and layout maps on file, grouped across all active projects.</p>
+        <p>
+          Quotations issued and layout maps on file, grouped across all active
+          projects.
+        </p>
       </header>
 
       <section>
         <h2>Quotations</h2>
         <div className="ps-qgrid">
           {sampleQuotations.map((q, i) => (
-            <QuotationCard key={q.plotNumber} quotation={q} index={i} onOpen={() => {}} />
+            <QuotationCard
+              key={q.plotNumber}
+              quotation={q}
+              index={i}
+              onOpen={() => {}}
+            />
           ))}
         </div>
       </section>

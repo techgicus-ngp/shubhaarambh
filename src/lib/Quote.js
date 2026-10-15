@@ -296,33 +296,23 @@
 
 
 
-
-
-
 // lib/quote.js — the arithmetic behind a quotation, and nothing else.
 
 import { sessionUid, sessionUser } from './Session';
 
 /**
- * The Flutter screen does this with sixteen TextEditingControllers, each
- * listening to the others, guarded by an _isRecalculating flag to stop
- * the listeners from re-entering. That guard exists because the inputs
- * and the outputs live in the same mutable place.
- *
- * Here they don't. The form holds only what the user TYPED, and derive()
- * computes everything else on each render. There is no recalculation
- * step to guard, no ordering between fields, and no way for a computed
- * value to drift out of step with the numbers it came from.
+ * The form holds only what the user TYPED, and derive() computes everything
+ * else on each render. No recalculation step, no ordering between fields.
  *
  * Three fields are both computed AND editable — total, down payment and
  * admin total. Each carries an "edited" flag: false means derive owns
- * it, true means the user has taken it over. That is the whole of the
- * override mechanism, and it's why the reset arrow just sets a flag back
- * to false.
+ * it, true means the user has taken it over. The reset arrow just sets
+ * a flag back to false.
  */
 
+// FIX 4: strip commas so "1,50,000" parses as 150000, not 1.
 const num = (v, d = 0) => {
-  const n = parseFloat(v);
+  const n = parseFloat(String(v ?? '').replace(/,/g, ''));
   return Number.isFinite(n) ? n : d;
 };
 
@@ -336,29 +326,10 @@ export const MUTATION_DEFAULT = 15000;
 export const SOCIETY_DEFAULT = 13500;
 export const STAMP_PCT_DEFAULT = 6;
 
-/** The set of down-payment plans the UI offers. Kept in one place so the
- *  <select> options and any validation can be built off the same list
- *  instead of drifting out of sync. */
 export const DOWN_PAYMENT_OPTIONS = ['10%', '20%', '25%'];
 export const DOWN_PAYMENT_DEFAULT = '20%';
 
-/**
- * The signed-in user's id, whatever reached this call.
- *
- * Three sources, in order of trust:
- *   1. the object passed in — a screen that has the user should say so;
- *   2. localStorage, via sessionUid();
- *   3. nothing, which callers must treat as "not signed in".
- *
- * The fallback is here because the map opens QuotationModal without a
- * user prop and has no reason to know about auth. Without it every
- * quotation saved from the map went in with createdByUid: '' — a record
- * that writes, prints, and then matches nobody's list query.
- *
- * All three sources produce the same string: the saraswati_user document
- * id, which ensureSeedUser and registerEmployee also write into the
- * document's own `uid` field.
- */
+/** The signed-in user's id: passed-in user, then localStorage, else ''. */
 export const userUid = (user) => user?.uid || user?.id || sessionUid();
 
 /** 1% up to ₹30L, a flat ₹30,000 above it. */
@@ -404,28 +375,21 @@ export function emptyForm({ plotNo = '', areaSqft = 0, projectName = '' } = {}) 
   };
 }
 
-/**
- * Everything computed, in one pass, from what the user typed.
- *
- * downPaymentOption is a string like '10%' / '20%' / '25%'. Rather than
- * enumerate each one in a ternary or switch — which silently mis-handles
- * any option added later, as '25%' did when it fell through to the 20%
- * branch of a two-way ternary — the percentage is parsed straight out of
- * the string. Adding a fourth option to the <select> needs no change here.
- */
+/** Everything computed, in one pass, from what the user typed. */
 export function derive(f) {
   const size = num(f.plotSize);
   const rate = num(f.ratePerSqFt);
   const booking = num(f.bookingAmount);
-  const sdPct = num(f.stampDutyPercent, STAMP_PCT_DEFAULT);
+  // FIX 3: a cleared stamp duty field means 0%, not a silent jump to 6%.
+  // The 6% default is already pre-filled by emptyForm.
+  const sdPct = num(f.stampDutyPercent, 0);
   const mutation = num(f.mutation);
   const society = num(f.societyCharges);
 
   const total = f.totalEdited ? num(f.totalPlotAmount) : size * rate;
   const agreement = total * AGREEMENT_PCT;
 
-  // parseFloat('25%') === 25, so this reads whatever percent string the
-  // option carries and falls back to the default only if it's unparseable.
+  // parseFloat('25%') === 25, so any percent string works.
   const pct = num(f.downPaymentOption, num(DOWN_PAYMENT_DEFAULT)) / 100;
   const autoDown = Math.max(0, total * pct);
   const down = f.downPaymentEdited ? num(f.downPayment) : autoDown;
@@ -434,7 +398,7 @@ export function derive(f) {
   const stampDuty = (total * sdPct) / 100;
   const registration = autoRegistration(total);
 
-  const autoAdmin = stampDuty + registration + mutation + society;
+  const autoAdmin = mutation + society;
   const adminTotal = f.adminEdited ? num(f.adminTotal) : autoAdmin;
 
   return {
@@ -451,19 +415,14 @@ export function derive(f) {
     society,
     autoAdmin,
     adminTotal,
-    finalTotal: total + adminTotal,
+    finalTotal: total + adminTotal + stampDuty + registration,
   };
 }
 
-/* ── DATE SERIALISATION ─────────────────────────────────────────────────
-   Flutter's QuotationModel.toMap stores every date as an ISO-8601 string
-   (toIso8601String) and fromMap reads it back with DateTime.tryParse.
-   A Firestore Timestamp written by the web would not parse there, so the
-   web must write strings too. */
+/* ── DATE SERIALISATION ───────────────────────────────────────────────── */
 const pad = (n, w = 2) => String(n).padStart(w, '0');
 
-/** Same shape as Dart's DateTime.toIso8601String() for a local time:
- *  no "Z", milliseconds included — what Flutter's tryParse expects. */
+/** Same shape as Dart's DateTime.toIso8601String() for a local time. */
 const isoLocal = (d) => (d instanceof Date && !Number.isNaN(d.getTime())
   ? `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
     + `T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${pad(d.getMilliseconds(), 3)}`
@@ -480,24 +439,9 @@ export const serializeDates = (doc) => {
 
 /**
  * The record shape. Keys match QuotationModel.toMap exactly, including
- * `saleDeederDate` — the typo is the real field name, so correcting it
- * here would hide every record the Flutter app has already written.
- *
- * toDoc returns real Date objects (the print view wants them). Run the
- * result through serializeDates() before writing: Flutter stores dates
- * as ISO strings, not Timestamps, and its fromMap cannot parse a Timestamp.
- *
- * createdByUid is the whole basis of "my quotations": it is written here,
- * filtered on by watchEmployeeQuotations, and compared against in the
- * detail pages. If it is ever blank, the record is invisible everywhere.
- * Callers must refuse to save when userUid() comes back empty — see
- * QuotationModal.save.
- *
- * downPaymentOption is stored as its own field (alongside the numeric
- * downPayment) so that reopening a record for editing can read back
- * exactly which plan was chosen. Older records saved before this field
- * existed (including every Flutter-created one) have it inferred from the
- * downPayment / totalPlotAmount ratio in fromDoc.
+ * the `saleDeederDate` typo (it is the real field name).
+ * Run the result through serializeDates() before writing.
+ * Callers must refuse to save when userUid() comes back empty.
  */
 export function toDoc(f, d, user) {
   const stored = sessionUser();
@@ -516,7 +460,6 @@ export function toDoc(f, d, user) {
     loanAmount: d.balance,
     stampDutyPercent: d.stampDutyPercent,
     stampDutyAmount: d.stampDuty,
-    // Flutter's default is 1 (%); 0 would misdescribe a 1% registration.
     registrationPercent: d.total <= REG_CAP ? REG_PCT * 100 : 0,
     registrationAmount: d.registration,
     mutation: d.mutation,
@@ -538,8 +481,7 @@ const asDate = (v) => {
   return Number.isNaN(x.getTime()) ? null : x;
 };
 
-/** Which plan a record used, guessed from its numbers. For records that
- *  predate the downPaymentOption field. */
+/** Which plan a record used, guessed from its numbers (old records). */
 const inferOption = (down, total) => {
   if (!(down > 0) || !(total > 0)) return DOWN_PAYMENT_DEFAULT;
   const pct = (down / total) * 100;
@@ -551,6 +493,9 @@ const inferOption = (down, total) => {
 export function fromDoc(data, id) {
   const total = Number(data.totalPlotAmount) || 0;
   const down = Number(data.downPayment) || 0;
+  const stampAmt = Number(data.stampDutyAmount) || 0;
+  const regAmt = Number(data.registrationAmount) || 0;
+  const admin = Number(data.adminTotal) || 0;
   return {
     id,
     customerName: data.customerName || '',
@@ -566,23 +511,19 @@ export function fromDoc(data, id) {
     downPaymentOption: data.downPaymentOption || inferOption(down, total),
     loanAmount: Number(data.loanAmount) || 0,
     stampDutyPercent: Number(data.stampDutyPercent) || 0,
-    stampDutyAmount: Number(data.stampDutyAmount) || 0,
-    registrationAmount: Number(data.registrationAmount) || 0,
+    stampDutyAmount: stampAmt,
+    registrationAmount: regAmt,
     mutation: Number(data.mutation) || 0,
     societyCharges: Number(data.societyCharges) || 0,
-    adminTotal: Number(data.adminTotal) || 0,
-    finalTotalAmount: Number(data.finalTotalAmount) || 0,
+    adminTotal: admin,
+    // FIX 1: if the stored final total is missing/0, rebuild it from the parts.
+    finalTotalAmount:
+      Number(data.finalTotalAmount) || (total + admin + stampAmt + regAmt),
     quotationDate: asDate(data.quotationDate) || new Date(),
     bookingDate: asDate(data.bookingDate),
     downPaymentDate: asDate(data.downPaymentDate),
     saleDeederDate: asDate(data.saleDeederDate),
-    // createdByUid is the Flutter field; employeeId is what the older web
-    // records used. Read both so one list can show either.
-    //
-    // NOTE: this fallback is read-time only. A record whose stored
-    // createdByUid is empty still cannot be reached by
-    // watchEmployeeQuotations, because the where clause runs on the
-    // server against the stored field.
+    // Read-time fallback only; see watchEmployeeQuotations.
     createdByUid: data.createdByUid || data.employeeId || '',
     createdByName: data.createdByName || '',
   };
@@ -601,7 +542,8 @@ export function toForm(q) {
     ratePerSqFt: String(q.ratePerSqFt || ''),
     bookingAmount: String(q.bookingAmount || 0),
     downPayment: String(q.downPayment || 0),
-    stampDutyPercent: String(q.stampDutyPercent || STAMP_PCT_DEFAULT),
+    // FIX 3: ?? keeps a saved 0% instead of turning it into 6%.
+    stampDutyPercent: String(q.stampDutyPercent ?? STAMP_PCT_DEFAULT),
     mutation: String(q.mutation || 0),
     societyCharges: String(q.societyCharges || 0),
     totalPlotAmount: String(q.totalPlotAmount || 0),
@@ -610,11 +552,10 @@ export function toForm(q) {
     bookingDate: dateIn(q.bookingDate),
     downPaymentDate: dateIn(q.downPaymentDate),
     saleDeedDate: dateIn(q.saleDeederDate),
-    // Stored (or, for old records, inferred) in fromDoc.
     downPaymentOption: q.downPaymentOption || DOWN_PAYMENT_DEFAULT,
-    /* A saved record's numbers are whatever was saved, not whatever the
-       formula would produce now — so the overrides start ON. Clearing an
-       override hands the field back to derive. */
+    /* FIX 2: a saved record's numbers are what was saved, so overrides start
+       ON. If you want edits to plot size/rate to recalculate on reopen, set
+       totalEdited / downPaymentEdited / adminEdited to false instead. */
     totalEdited: true,
     downPaymentEdited: true,
     adminEdited: true,
