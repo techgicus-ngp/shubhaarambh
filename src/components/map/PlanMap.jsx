@@ -660,7 +660,8 @@ export default function PlanMap({
      `!share && !status` blinks the colours off for the first frames of
      every load, while the status map is still coming down from
      Firestore. */
-  const canStatus = isShareUrl();
+/* Status view is shown on every route: app and shared link alike. */
+const canStatus = true;
 
   const [ownNumbers, setOwnNumbers] = useState(showNumbers !== false);
   const [ownStatus, setOwnStatus] = useState(true);
