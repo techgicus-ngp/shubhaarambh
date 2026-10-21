@@ -28,7 +28,7 @@ import vastu from "../assets/madhav.jpeg";
 ------------------------------------------------------------------ */
 const PROJECT_IMAGES_RAW = {
   Nisarg: LOGO_SRC,
-  "Prime heritage": Hanuman,
+  "Premier heritage final": Hanuman,
   "Madhav Nagri": vastu,
   // 'prospera-lakeview': LAKEVIEW_LOGO_SRC,
   // 'prospera-hillcrest': HILLCREST_LOGO_SRC,
