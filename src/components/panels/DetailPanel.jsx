@@ -1,4 +1,3 @@
-
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { SQFT } from '../../lib/units';
 import { straightSides } from '../../lib/geometry';
@@ -54,6 +53,37 @@ const FIELD = 'rgba(255, 255, 255, 0.5)';
 const PAPER = 'rgba(255, 255, 255, 0.94)';
 
 const DOCK_BP = 1024;   // at or below this the panel docks to a corner
+
+/* PRICE ON SHARED LINKS. false = the price shows everywhere, including
+   the WhatsApp link a customer opens. true = the price shows only in
+   your own app (where onQuote exists) and is hidden on shared links. */
+const HIDE_PRICE_ON_SHARE = false;
+
+/* Firestore may hold the price as a number (403004) or a string such as
+   "4,03,004" or "₹ 403004". Returns "₹ 4,03,004", or null when there is
+   no usable price (missing, blank or 0). */
+const formatPrice = (raw) => {
+  if (raw === null || raw === undefined) return null;
+  const n = Number(String(raw).replace(/[^0-9.]/g, ''));
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return `₹ ${n.toLocaleString('en-IN')}`;
+};
+
+/* Looks for a price in every place the plot's data might live, under
+   any spelling: price, Price, plotPrice, total_price ... Returns the raw
+   value of the first key that holds a usable amount, or null. */
+const findPrice = (p) => {
+  const sources = [p && p.doc, p, p && p.properties, p && p.props, p && p.data];
+  for (const src of sources) {
+    if (!src || typeof src !== 'object') continue;
+    for (const key of Object.keys(src)) {
+      if (/price|amount|cost/i.test(key) && formatPrice(src[key])) {
+        return src[key];
+      }
+    }
+  }
+  return null;
+};
 
 export default function DetailPanel({
   plot, status, setStatus, onClose, onQuote, latLng, onReserve,
@@ -146,6 +176,19 @@ export default function DetailPanel({
   const sqm = Math.round(plot.area);
   const sqft = Math.round(plot.area * SQFT);
 
+  /* The plot's price, from the Firestore doc. Null when blank or 0, so
+     the block simply doesn't draw. */
+  const priceText = (HIDE_PRICE_ON_SHARE && !onQuote)
+    ? null
+    : formatPrice(findPrice(plot));
+
+  /* TEMP: shows what the panel actually receives. Delete once the
+     price appears. */
+  if (typeof console !== 'undefined') {
+    // eslint-disable-next-line no-console
+    console.log('plot', plot, 'doc keys', Object.keys(doc), 'price =', findPrice(plot));
+  }
+
   const figures = [
     { label: 'Area', value: sqft.toLocaleString('en-IN'), unit: 'sq ft' },
     { label: 'Area', value: sqm.toLocaleString('en-IN'), unit: 'm²' },
@@ -182,7 +225,8 @@ export default function DetailPanel({
     ? `https://www.google.com/maps/search/?api=1&query=${latLng.lat.toFixed(6)},${latLng.lng.toFixed(6)}`
     : null;
 
-  const more = details.length + (latLng ? 1 : 0);
+  /* the price block counts as one more thing behind the chevron */
+  const more = details.length + (latLng ? 1 : 0) + (priceText ? 1 : 0);
 
   /* Without a quote handler and without a location there is nothing in
      the segmented control, and an empty bordered box in the chip looks
@@ -313,6 +357,26 @@ export default function DetailPanel({
           overflow-y: auto; -webkit-overflow-scrolling: touch;
           overscroll-behavior: contain;
           padding: 14px 16px 16px 18px;
+        }
+
+        /* the price: the first thing a buyer looks for, so it gets its
+           own full-width line above the figures */
+        .pp-price {
+          display: flex; align-items: baseline; justify-content: space-between;
+          gap: 12px;
+          padding: 10px 12px; margin-bottom: 12px;
+          border: 1px solid rgba(44, 90, 79, 0.3); border-radius: 10px;
+          background: ${ACCENT_BG};
+        }
+        .pp-price-k {
+          font-family: ${SANS}; font-size: 12px; font-weight: 500;
+          color: ${TEXT_MUTED}; flex: 0 0 auto;
+        }
+        .pp-price-v {
+          font-family: ${MONO}; font-size: 18px; font-weight: 600;
+          color: ${ACCENT}; font-variant-numeric: tabular-nums;
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+          min-width: 0;
         }
 
         /* figures as one ruled block — a spec sheet, not four cards */
@@ -471,6 +535,7 @@ export default function DetailPanel({
 
           .pp-body { padding: 13px 14px 14px 16px; }
           .pp-fig-v { font-size: 14px; }
+          .pp-price-v { font-size: 16px; }
           .pp-foot { padding: 11px 14px calc(13px + env(safe-area-inset-bottom, 0px)) 16px; }
         }
 
@@ -620,6 +685,13 @@ export default function DetailPanel({
         </div>
 
         <div className="pp-body">
+          {priceText && (
+            <div className="pp-price">
+              <span className="pp-price-k">Price</span>
+              <span className="pp-price-v">{priceText}</span>
+            </div>
+          )}
+
           <div className="pp-figs">
             {figures.map((f, i) => (
               <div className="pp-fig" key={i}>

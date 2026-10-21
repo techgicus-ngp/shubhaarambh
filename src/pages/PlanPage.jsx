@@ -1,5 +1,6 @@
-
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, {
+  useCallback, useEffect, useMemo, useRef, useState,
+} from 'react';
 import { useMatch, useNavigate, useParams } from 'react-router-dom';
 
 import Toolbar from '../components/panels/Toolbar';
@@ -12,6 +13,7 @@ import { usePlotFilters } from '../hooks/usePlotFilters';
 import { saveQuotation } from '../firebase/quotationsRepo';
 import { useAuth } from '../context/Authcontext';
 import { SHARE_ROOT } from '../lib/share';
+import { readCategory } from '../config/plotCategories';            // NEW
 import { ACCENT, BODY, CANVAS, HAIR, MONO, MUTED, SANS } from '../theme/tokens';
 
 /* Same two anchors PlanMap and DetailPanel already use (NARROW_PX /
@@ -50,7 +52,7 @@ export default function PlanPage({ share = false }) {
   const mapRef = useRef(null);
   const flightRef = useRef(0);
   const prevSelRef = useRef(null);
-// const [showStatus, setShowStatus] = useState(true);
+
   /* Every path in this file hangs off one root, so the public and
      private URLs cannot disagree about where a plot lives. */
   const root = share ? SHARE_ROOT : '/maps';
@@ -78,6 +80,30 @@ export default function PlanPage({ share = false }) {
 
   const { layout, status, setStatus, source, error, loading, count } = useMapLayout(mapId);
   const filters = usePlotFilters(layout, status);
+
+  /* ── PLOT CATEGORIES ─────────────────────────────────────────────
+     plot number -> category ("Residential", "Commercial", ...), read off
+     the plot data the layout already carries. Only plots that HAVE a
+     category are included, so only those get coloured. Memoised, so the
+     map's memoised plan does not re-render on every page render.
+
+     If this stays empty, the category is stored under a field name
+     readCategory() does not know — see config/plotCategories.js. */
+  const categories = useMemo(() => {
+    const c = {};
+    if (!layout) return c;
+    layout.byName.forEach((p, name) => {
+      const v = readCategory(p);
+      if (v) c[name] = v;
+    });
+    return c;
+  }, [layout]);
+
+  /* DEBUG — delete both lines once the colours work. */
+  // eslint-disable-next-line no-console
+  console.log('plot sample:', layout && [...layout.byName.values()][0]);
+  // eslint-disable-next-line no-console
+  console.log('categories:', categories);
 
   const fitWholePlan = useCallback(() => {
     const map = mapRef.current;
@@ -242,7 +268,7 @@ export default function PlanPage({ share = false }) {
       <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
         {layout && (
           <PlanMap
-          share
+            share
             layout={layout}
             mapRef={mapRef}
             selected={selected}
@@ -251,33 +277,15 @@ export default function PlanPage({ share = false }) {
             status={status}
             showNumbers={showNumbers}
             showStatus={showStatus}
+            categories={categories}
             onReady={fitWholePlan}
-             mapId={mapId}
+            mapId={mapId}
             site={{
               info: { title: 'Prospera Saraswati', rows: [, ['Plots', '51']], note: '' },
               gallery: [{ url: '…', thumb: '…', caption: '' }],
               brochures: [{ name: 'Layout plan', url: '…', size: '2.4 MB' }],
             }}
           />
-//           <PlanMap
-//   layout={layout}
-//   selected={selected}
-//   onSelect={setSelected}
-//   matches={matches}
-//   mapRef={mapRef}
-//   fitRef={fitRef}
-//   onReady={onReady}
-//   // site={site}
-//   site={{
-//              info: { title: 'Prospera Saraswati', rows: [, ['Plots', '51']], note: '' },
-//               gallery: [{ url: '…', thumb: '…', caption: '' }],
-//               brochures: [{ name: 'Layout plan', url: '…', size: '2.4 MB' }],
-//              }}
-//   mapId={mapId}
-//   share                 /* takes colours, legend and switch together */
-//   status={null}
-//   setShowStatus={null}  /* no setter, so MapToggles draws no switch */
-// />
         )}
 
         <DetailPanel

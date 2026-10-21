@@ -6,11 +6,13 @@ import {
   DIM_EDGE, DIM_FILL, DIM_INK,
   KIND, MAPFONT, MONO, SANS, PLOT_STROKE, SEL_STROKE, SOCKET_FILL,
 } from '../../theme/tokens';
+import { categoryFill, readCategory } from '../../config/plotCategories';
 
 /* EVERY plot on the layout, off-white. This replaces toneOf's per-block
    master-plan tones outright — one plot reads the same as the next, so
-   the only colour anywhere on the plan is a sale colour, and a coloured
-   plot means something rather than being one more shade among twelve.
+   the only colour anywhere on the plan is a sale or category colour, and
+   a coloured plot means something rather than being one more shade among
+   twelve.
 
    Roads, open spaces and amenities are untouched: their colours come
    from KIND, not from here.
@@ -21,6 +23,8 @@ const PLAIN_FILL = '#F1ECE2';
 /* Ground colour behind the whole layout, drawn ONLY inside the project's
    layoutBoundary. Change this one constant to recolour it. */
 const LAYOUT_BG = '#3b3b3b';
+
+const ROAD_FONT_BOOST = 2;
 
 /* ── PLOT NUMBER ORIENTATION ─────────────────────────────────────────
    Orientation of a plot, in degrees, for SVG rotate().
@@ -55,6 +59,7 @@ function plotAngle(pts) {
 
 export default function PlanContent({
   layout, selected, matches, status, showNumbers, showStatus, hover, setHover, onPick,
+  categories, showCategory,                                   // NEW
 }) {
   /* One reading of a plot's status, shared by the shape and its number:
      they have to agree, or a plot ends up with dark ink on a red fill.
@@ -63,17 +68,23 @@ export default function PlanContent({
      read lands, so it is guarded here rather than indexed raw. */
   const stateOf = (name) => STATUS[statusKeyOf((status || {})[name])];
 
+  /* The plot's category colour, only while the Category switch is on.
+     null when the plot has no (known) category, so it falls through to
+     the status colour or the plain drawing tone. */
+  const catOf = (f) => {
+    if (!showCategory) return null;
+    /* `categories` is { plotName: 'residential' | ... } from PlanMap.
+       Falling back to the plot's own field covers a parent that sends
+       nothing. */
+    return categoryFill(categories, f.name)
+      || categoryFill({ [f.name]: readCategory(f) }, f.name);
+  };
+
   /* ── THE LAYOUT BOUNDARY ───────────────────────────────────────────
-     The outer edge of the whole site, converted in buildLayout.js
-     through the same frame as every plot corner, so it is already a
-     ring of [x, y] points in drawing-space metres.
-
-     The background is drawn from this ring ONLY. A project with no
-     layoutBoundary gets no background — no guessed rectangle.
-
-     Drawn first, before plots, roads and labels, so it sits under the
-     whole layout as a backdrop. No stroke: it is a ground tone, not an
-     outlined shape. */
+     The outer edge of the whole site, already a ring of [x, y] points
+     in drawing-space metres. The background is drawn from this ring
+     ONLY; a project with no layoutBoundary gets no background. Drawn
+     first, so it sits under the whole layout. */
   const layoutBoundary = layout.layoutBoundary;
 
   const groundPath = React.useMemo(() => (
@@ -89,7 +100,7 @@ export default function PlanContent({
     (layout.plots || []).forEach((f) => m.set(f.i, plotAngle(f.pts)));
     return m;
   }, [layout.plots]);
-const ROAD_FONT_BOOST = 2;
+
   return (
     <g>
       {groundPath && (
@@ -111,10 +122,10 @@ const ROAD_FONT_BOOST = 2;
 
         let fill = k.fill;
         if (isPlot) {
-          /* Off-white unless the plot has a sale state AND the status
-             view is up. Nothing else colours a plot. */
+          /* Priority: category colour (switch on) → sale colour (switch
+             on) → off-white drawing tone. */
           const st = stateOf(f.name);
-          fill = (showStatus && st.fill) || PLAIN_FILL;
+          fill = catOf(f) || (showStatus && st.fill) || PLAIN_FILL;
         }
         if (isSel) fill = SOCKET_FILL;   // the raised copy carries the real colour
 
@@ -143,9 +154,10 @@ const ROAD_FONT_BOOST = 2;
         const size = fittedNumberSize(f, 3.2);
         if (size < 0.85) return null;   // smaller than this is a smudge, not a number
         /* Dark ink vanishes on the red and blue fills, so the number
-           takes whatever the status says is legible on it — and stays
-           dark on an off-white plot, which has no status to ask. */
-        const st = showStatus ? stateOf(f.name) : null;
+           takes whatever the status says is legible on it. A category
+           colour is light enough for dark ink, so it wins over status
+           here, matching the fill above. */
+        const st = !catOf(f) && showStatus ? stateOf(f.name) : null;
         const ink = (st && st.fill && st.ink) || '#1A1208';
         const [x, y] = f.lp;
         const ang = plotAngles.get(f.i) || 0;   // number runs along the plot line
@@ -164,8 +176,7 @@ const ROAD_FONT_BOOST = 2;
 
       {/* Roads, open spaces, amenities and utilities name themselves. A
           road polygon is long and thin, so its longest edge is the
-          direction the name should run — which is how the CAD sheet set
-          "9 MT. WIDE ROAD" along each carriageway. */}
+          direction the name should run. */}
       {layout.features.map((f) => {
         if (f.kind === 'plot') return null;
         const label = (f.title || f.name || '').trim();
@@ -173,7 +184,7 @@ const ROAD_FONT_BOOST = 2;
 
         const isRoad = f.kind === 'road';
         const baseSize = Math.min(Math.max(f.ir * (isRoad ? 0.55 : 0.9), 1.2), isRoad ? 2.8 : 3.8);
-const size = isRoad ? baseSize + ROAD_FONT_BOOST : baseSize;
+        const size = isRoad ? baseSize + ROAD_FONT_BOOST : baseSize;
         if (size < 1.2) return null;
 
         const ink = KIND[f.kind].ink;

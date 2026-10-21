@@ -19,9 +19,9 @@
 //     key: 'token', doc: 'Token', label: 'Token', legacy: ['booked'],
 //     fill: '#2196F3', dot: '#2196F3', ink: '#FFFFFF',
 //   },
-//   partial: {
-//     key: 'partial', doc: 'Partial Payment', label: 'Part paid', legacy: ['reserved'],
-//     fill: '#FFC107', dot: '#FFC107', ink: '#1A1208',
+//   reserved: {
+//     key: 'reserved', doc: 'Reserved', label: 'Reserved', legacy: [],
+//     fill: '#0894d0', dot: '#0894d0', ink: '#090d0f',
 //   },
 //   agreement: {
 //     key: 'agreement', doc: 'Agreement', label: 'Agreement', legacy: [],
@@ -78,10 +78,10 @@ export const STATUS = {
     key: 'booked', doc: 'Booked', label: 'Booked', legacy: [],
     fill: '#28465e', dot: '#28465e', ink: '#FFFFFF',
   },
-  // partial: {
-  //   key: 'partial', doc: 'Partial Payment', label: 'Part paid', legacy: ['reserved'],
-  //   fill: '#FFC107', dot: '#FFC107', ink: '#1A1208',
-  // },
+  reserved: {
+    key: 'reserved', doc: 'Reserved', label: 'Reserved', legacy: [],
+    fill: '#0894d0', dot: '#0894d0', ink: '#d7e0e4',
+  },
   agreement: {
     key: 'agreement', doc: 'Agreement', label: 'Agreement', legacy: [],
     fill: '#9fc03c', dot: '#9fc03c', ink: '#FFFFFF',
