@@ -57,7 +57,7 @@ export const easeInOut = (t) =>
    seam appears at the edge of the frame. Black so the satellite imagery
    has no visible frame; everything else stays on CANVAS because panels
    and labels sit OVER imagery. */
-const MAP_BG = "#000";
+const MAP_BG = "#2d2d2ddb";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
