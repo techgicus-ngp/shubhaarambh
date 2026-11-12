@@ -144,7 +144,7 @@ export const MAPFONT = "'Poppins', 'Inter', -apple-system, sans-serif";
 /** Non-plot land uses. */
 export const KIND = {
   plot: { label: 'Plot', fill: '#D9AC8B', stroke: '#9A6E52', ink: '#43301E' },
-  road: { label: 'Road', fill: '#2d2d2ddb', stroke: '#2d2d2ddb', ink: '#ffffff' },
+  road: { label: 'Road', fill: '#2d2d2ddb', stroke: '#2d2d2dd8', ink: '#ffffff' },
   open_space: { label: 'Open space', fill: '#6E9B3E', stroke: '#54782F', ink: '#F2F6EC' },
   amenity: { label: 'Amenity space', fill: '#3E86C4', stroke: '#2F679A', ink: '#EDF4FB' },
   htl: { label: 'HTL corridor', fill: '#7D8F66', stroke: '#5F6E4D', ink: '#F1F4EB' },
